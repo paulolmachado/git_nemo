@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [[ "$(ls -l .git/config 2> /dev/null | wc -l)" -eq '0' ]]; then
+        zenity --error --text="Diretório não é um clone de GIT."
+        exit 1
+fi
+
+zenity --info --text "Aguarde ..." &
+zpid=$!
+
+git add . > /tmp/git.txt 2> /tmp/git_erro.txt
+RETORNO=$?
+
+kill $zpid
+
+
+if [[ "$RETORNO" -ne '0' ]]; then
+	zenity --error --text="Erro ao adicionar arquivos.\n$(cat /tmp/git_erro.txt)"
+	exit 1
+fi
+
+zenity --info --text="Arquivos adicionados ao projeto GIT.\n"$(cat /tmp/git.txt)

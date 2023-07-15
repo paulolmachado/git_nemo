@@ -1,0 +1,53 @@
+#!/bin/bash
+
+if [[ "$(ls -l .git/config 2> /dev/null | wc -l)" -eq '0' ]]; then
+        zenity --error --text="Diretório não é um clone de GIT."
+        exit 1
+fi
+
+ENTRADA=$(yad --width=500 --form --title="GIT Push" --field="Comentário:")
+
+if [[ "$?" -eq '1' ]]; then
+	exit 0
+fi
+
+COMENTARIO=$(cut -d"|" -f 1 <<< $ENTRADA)
+
+if [[ -z "$COMENTARIO" ]]; then
+	zenity --error --text="O campo COMENTARIO tem que ser preenchido."
+	exit 1
+fi
+
+zenity --info --text "Aguarde ..." &
+zpid=$!
+
+git add . > /tmp/git.txt 2> /tmp/git_erro.txt
+RETORNO=$?
+
+if [[ "$RETORNO" -ne '0' ]]; then
+	zenity --error --text="Erro ao adicionar arquivos.\n$(cat /tmp/git_erro.txt)"
+	kill $zpid
+	exit 1
+fi
+
+git commit -m "$COMENTARIO" > /tmp/git.txt 2> /tmp/git_erro.txt
+RETORNO=$?
+
+if [[ "$RETORNO" -ne '0' ]]; then
+	zenity --error --text="Erro ao executar o commit.\n$(cat /tmp/git_erro.txt)"
+	kill $zpid
+	exit 1
+fi
+
+git push > /tmp/git.txt 2> /tmp/git_erro.txt
+RETORNO=$?
+
+if [[ "$RETORNO" -ne '0' ]]; then
+	zenity --error --text="Erro ao executar o push.\n$(cat /tmp/git_erro.txt)"
+	kill $zpid
+	exit 1
+fi
+
+kill $zpid
+
+zenity --info --text="Projeto atualizado no GIT com sucesso."

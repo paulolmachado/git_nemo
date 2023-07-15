@@ -1,0 +1,57 @@
+#!/bin/bash
+
+DADOS_CONEXAO=$(yad --width=500 --form --title="GIT Clone" --field="URL:" "$(cat ~/.local/share/nemo/scripts/default_url.txt)" --field="Usuário:" "$(cat ~/.local/share/nemo/scripts/default_usuario.txt)" --field="Senha:":H)
+
+if [[ "$?" -eq '1' ]]; then
+	exit 0
+fi
+
+V_URL=$(cut -d'|' -f 1 <<< $DADOS_CONEXAO)
+V_USUARIO=$(cut -d'|' -f 2 <<< $DADOS_CONEXAO) 
+V_SENHA=$(cut -d'|' -f 3 <<< $DADOS_CONEXAO | sed 's/@/%40/g')
+
+#echo $V_URL
+#echo $V_USUARIO
+#echo $V_SENHA
+
+if [[ -z "$V_URL" ]]; then
+	zenity --error --text="O campo URL tem que ser preenchido."
+	exit 1
+fi
+
+if [[ $(cut -c1-8 <<< $V_URL) != "https://" ]]; then
+	zenity --error --text="Campo URL invalido."
+	exit 1
+fi
+
+if [[ -z "$V_USUARIO" ]]; then
+	zenity --error --text="O campo USUARIO tem que ser preenchido."
+	exit 1
+fi
+
+if [[ -z "$V_SENHA" ]]; then
+	zenity --error --text="O campo SENHA tem que ser preenchido."
+	exit 1
+fi
+
+echo $V_URL > ~/.local/share/nemo/scripts/default_url.txt
+echo $V_USUARIO > ~/.local/share/nemo/scripts/default_usuario.txt
+
+V_URL_COMPLETA="https://"$V_USUARIO":"$V_SENHA"@"$(cut -c9- <<< $V_URL)
+echo $V_URL_COMPLETA
+
+zenity --info --text "Aguarde ..." &
+zpid=$!
+
+git clone $V_URL_COMPLETA > /tmp/git.txt 2> /tmp/git_erro.txt
+RETORNO=$?
+
+kill $zpid
+
+
+if [[ "$RETORNO" -ne '0' ]]; then
+	zenity --error --text="$(cat /tmp/git_erro.txt)"
+	exit 1
+fi
+
+zenity --info --text="Projeto clonado com sucesso."
